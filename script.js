@@ -25,7 +25,7 @@ function draw() {
         ctx.strokeStyle = "blue";
         ctx.lineWidth = 2;
 
-        let steps = 100;
+        let steps = 50*(points.length - 1);
         for (let i = 0; i <= steps; i++) {
             let t = i / steps;
             let pos = deCasteljauRational(points, t);
@@ -70,23 +70,40 @@ canvas.addEventListener('mousedown', e => {
 
 function updateUI() {
     const container = document.getElementById('point-settings');
+
+    let html = `<button onclick="clearAll()">Изчисти всичко</button><br><br>`;
+
     if (!selectedPoint) {
-        container.innerHTML = "Изберете точка, за да промените теглото ѝ.";
+        html += "Изберете точка (ляв бутон), за да промените теглото ѝ, или я изтрийте (десен бутон).";
+        container.innerHTML = html;
         return;
     }
 
     let idx = points.indexOf(selectedPoint);
-    container.innerHTML = `
-        <strong>Точка b${idx}</strong><br>
-        Тегло (w): <input type="range" min="0.1" max="10" step="0.1" value="${selectedPoint.w}" id="weight-slider">
-        <span id="weight-val">${selectedPoint.w.toFixed(1)}</span>
+    html += `
+        <div style="border: 1px solid #ddd; padding: 10px;">
+            <strong>Настройки за точка b${idx}</strong><br>
+            Тегло (w): <input type="range" min="0.1" max="10" step="0.1" value="${selectedPoint.w}" id="weight-slider">
+            <span id="weight-val">${selectedPoint.w.toFixed(1)}</span>
+        </div>
     `;
+
+    container.innerHTML = html;
 
     document.getElementById('weight-slider').addEventListener('input', e => {
         selectedPoint.w = parseFloat(e.target.value);
         document.getElementById('weight-val').innerText = selectedPoint.w.toFixed(1);
         draw();
     });
+}
+
+function clearAll() {
+    if (confirm("Изтриване на всички точки?")) {
+        points = [];
+        selectedPoint = null;
+        updateUI();
+        draw();
+    }
 }
 
 window.addEventListener('mousemove', e => {
@@ -128,4 +145,24 @@ function deCasteljauRational(controlPoints, t) {
     };
 }
 
-draw();
+canvas.addEventListener('contextmenu', e => {
+    e.preventDefault();
+    
+    const rect = canvas.getBoundingClientRect();
+    const x = e.clientX - rect.left;
+    const y = e.clientY - rect.top;
+
+    const pointToDelete = getPointUnderMouse(x, y);
+    
+    if (pointToDelete) {
+        const index = points.indexOf(pointToDelete);
+        points.splice(index, 1);
+        
+        if (selectedPoint === pointToDelete) {
+            selectedPoint = null;
+            updateUI();
+        }
+        
+        draw();
+    }
+});
